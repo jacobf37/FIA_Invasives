@@ -1,0 +1,96 @@
+---
+title: "FIA Invasive Species Analysis"
+output: html_notebook
+---
+
+First, load packages.   
+[Tidyverse](https://www.tidyverse.org/)<br>
+[rFIA](https://rfia.netlify.app/)
+```{r message = F}
+library(tidyverse)
+library(rFIA)
+library(maps)
+library(sf)
+```
+<br>
+
+Set some global variables.
+```{r}
+db_dir <- 'D:/FIA/rFIA'
+
+db_states <- c('CT','DE','IL','IN','IA','KS','ME','MD',
+                     'MA','MI','MN','MO','NE','NH','NJ','NY',
+                     'ND','OH','PA','RI','SD','VT','WV','WI',
+                     'AL','AR','FL','GA','KY','LA','MS','NC',
+                     'OK','SC','TN','VA', 'TX')
+
+inv_spcd <- c(341, 712, 993, 994)
+```
+<br>
+
+| SPCD  | Scientific Name       | Common Name        |
+|:------|:--------------------- |:-------------------|
+| 341   | *Ailanthus altissima* | ailanthus          |
+| 712   | *Paulownia tomentosa* | empress-tree       | 
+| 993   | *Melia azedarach*     | chinaberry         |
+| 994   | *Triadica sebifera*   | Chinese tallowtree |
+
+<br>
+
+Load FIA data into an FIAdb object, making sure to use the remote database option `inMemory = F`.
+The `clipFIA()` function filters db to most recent inventory cycle for each state.
+```{r}
+db <- readFIA(db_dir, states = db_states, inMemory = F) %>% clipFIA()
+```
+<br>
+
+Identify plots with invasives present.
+```{r}
+inv_tpa <- tpa(db, bySpecies = T, treeDomain = SPCD %in% inv_spcd, byPlot = T)
+```
+<br>
+
+Check result.
+```{r}
+inv_tpa
+```
+
+```{r}
+inv_vr <- vitalRates(db, bySpecies = T, treeDomain = SPCD %in% inv_spcd, byPlot = T)
+inv_vr <- inv_vr %>% filter(SPCD %in% inv_spcd)
+```
+<br>
+Get records from PLOT and COND tables for identified plots.
+```{r}
+sub_db <- readFIA(db_dir, states = db_states, tables = c('PLOT', 'COND'))
+inv_cond <- sub_db$COND %>% filter(PLT_CN %in% unique(inv_tpa$PLT_CN)) %>% 
+  select(PLT_CN, INVYR, STATECD, FORTYPCD, OWNCD, OWNGRPCD, FORTYPCD, STDSZCD)
+inv_plot <- sub_db$PLOT %>% filter(CN %in% unique(inv_tpa$PLT_CN)) %>%
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, ECOSUBCD)
+```
+<br>
+Attach coordinates to plots.
+```{r}
+inv_sp <- inv_tpa %>% left_join(inv_plot, by = c('PLT_CN' = 'CN')) %>% 
+  select(LAT, LON, SPCD) %>% 
+  mutate(SPCD = as.factor(SPCD)) %>% 
+  mutate(SPCD = recode_factor(SPCD, `341` = 'ailanthus', `712` = 'empress-tree', `993` = 'chinaberry', `994` = 'Chinese tallowtree'))
+```
+<br>
+Map it.
+```{r message = F}
+states_lyr <- map_data("state")
+
+ggplot() + 
+  geom_polygon(data=states_lyr, aes(x=long, y=lat, group=group),
+                color="black", fill="white" ) +
+  labs(x = 'Longitude', y = 'Latitude') +
+  geom_point(data=inv_sp, aes(x=LON, y=LAT, fill = SPCD),
+             colour="black",pch=21) +
+  coord_cartesian(xlim=c(-105, -70), ylim = c(25, 45)) +
+  theme_classic() +
+  theme(legend.position = 'none') +
+  facet_wrap(~SPCD)
+```
+<br>
+
