@@ -1,6 +1,6 @@
 ---
 title: "FIA Invasive Species Analysis"
-output: html_notebook
+output: github_document
 ---
 
 First, load packages.   
