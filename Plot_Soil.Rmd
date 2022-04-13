@@ -1,0 +1,124 @@
+---
+title: "FIA_SSURGO_Intersect"
+output: 
+  html_document: 
+    keep_md: true
+date: '2022-04-12'
+---
+Load packages.
+```{r Load-packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(rFIA)
+library(soilDB)
+library(sp)
+```
+Set some global variables.
+```{r set-FIA-variables}
+db_dir <- 'D:/FIA/rFIA'
+
+db_states <- c('CT','DE','IL','IN','IA','KS','ME','MD',
+                     'MA','MI','MN','MO','NE','NH','NJ','NY',
+                     'ND','OH','PA','RI','SD','VT','WV','WI',
+                     'AL','AR','FL','GA','KY','LA','MS','NC',
+                     'OK','SC','TN','VA', 'TX')
+```
+## SSURGO Database
+Read in plot coordinates and make spatial.
+
+```{r read plot coordinates, message=FALSE}
+plot_coord <- read_csv('./Data/plot_coordinates.csv', show_col_types = F)
+
+p <- SpatialPointsDataFrame(plot_coord[, c('LON', 'LAT')], data = plot_coord[, 'pltID'], proj4string = CRS('+proj=longlat +datum=WGS84'))
+```
+Get unique FIA plot IDs.
+```{r build-plt_id}
+plt_id <- plot_coord %>% 
+  mutate(pltID = pltID %>% str_remove('[1-9]_')) %>% 
+  distinct(pltID) %>% pull()
+```
+
+Run spatial query at each point for MUKEY. Takes a while.
+```{r fetch soil grid records, eval=FALSE}
+res <- SDA_spatialQuery(p, what = 'mukey', db = 'SSURGO', byFeature = T)
+```
+
+Write out results.
+```{r write results, eval=FALSE}
+write_csv(p@data %>% bind_cols(res %>% select(mukey, muname)), './Data/SSURGO_intersect.csv')
+```
+
+## FIA Soil Data
+
+Read in FIA soils data.
+```{r define-column-type, echo=FALSE}
+colTypes <- c(
+  'CN' = 'numeric',
+  'PLT_CN' = 'numeric',
+  'INVYR' = 'integer',
+  'STATECD' = 'integer',
+  'COUNTYCD' = 'integer',
+  'PLOT' = 'integer',
+  'SMPLNNBR' = 'integer',
+  'VSTNBR' = 'integer',
+  'LAYER_TYPE' = 'character',
+  'SAMPLER_TYPE' = 'character',
+  'QASTATCD' = 'integer',
+  'SAMPLE_DATE' = 'Date',
+  'LAB_ID' = 'character',
+  'SAMPLE_ID' = 'character',
+  'FIELD_MOIST_SOIL_WT' = 'numeric',
+  'AIR_DRY_SOIL_WT' = 'numeric',
+  'OVEN_DRY_SOIL_WT' = 'numeric',
+  'FIELD_MOIST_WATER_CONTENT_PCT' = 'numeric',
+  'RESIDUAL_WATER_CONTENT_PCT' = 'numeric',
+  'TOTAL_WATER_CONTENT_PCT' = 'numeric',
+  'BULK_DENSITY' = 'numeric',
+  'COARSE_FRACTION_PCT' = 'numeric',
+  'C_ORG_PCT' = 'numeric',
+  'C_INORG_PCT' = 'numeric',
+  'C_TOTAL_PCT' = 'numeric',
+  'N_TOTAL_PCT' = 'numeric',
+  'PH_H2O' = 'numeric',
+  'PH_CACL2' = 'numeric',
+  'EXCHNG_NA' = 'numeric',
+  'EXCHNG_K' = 'numeric',
+  'EXCHNG_MG' = 'numeric',
+  'EXCHNG_CA' = 'numeric',
+  'EXCHNG_AL' = 'numeric',
+  'ECEC' = 'numeric',
+  'EXCHNG_MN' = 'numeric',
+  'EXCHNG_FE' = 'numeric',
+  'EXCHNG_NI' = 'numeric',
+  'EXCHNG_CU' = 'numeric',
+  'EXCHNG_ZN' = 'numeric',
+  'EXCHNG_CD' = 'numeric',
+  'EXCHNG_PB' = 'numeric',
+  'EXCHNG_S' = 'numeric',
+  'BRAY1_P' = 'numeric',
+  'OLSEN_P' = 'numeric',
+  'MEASYEAR' = 'integer',
+  'MODIFIED_BY' = 'character',
+  'MODIFIED_DATE' = 'Date',
+  'MODIFIED_IN_INSTANCE' = 'character',
+  'CREATED_BY' = 'character',
+  'CREATED_DATE' = 'Date',
+  'CREATED_IN_INSTANCE' = 'character'
+)
+
+sub_db <- readFIA(db_dir, states = db_states, 
+                  tables = c('SOILS_LAB', 'SOILS_SAMPLE_LOC'), colClasses = colTypes)
+
+```
+
+Check for plots with soil information.
+```{r extract-soil-records}
+inv_soils_lab <- sub_db$SOILS_LAB %>% 
+  mutate(pltID = stringr::str_c(STATECD, COUNTYCD, PLOT, sep = '_')) %>% 
+           filter(pltID %in% plt_id) 
+inv_soils_loc <- sub_db$SOILS_SAMPLE_LOC %>% 
+  mutate(pltID = stringr::str_c(STATECD, COUNTYCD, PLOT, sep = '_')) %>% 
+           filter(pltID %in% plt_id) 
+print(paste('Lab plots -', nrow(inv_soils_lab), 'Local plots -', nrow(inv_soils_loc)))
+rm(sub_db)
+```
+
