@@ -1,0 +1,72 @@
+---
+title: "SM_Invasive_Range"
+output: 
+  html_document: 
+    keep_md: true
+date: '2022-04-22'
+---
+
+```{r load-packages-1, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(maps)
+library(sf)
+```
+
+```{r}
+spNames <- c('Acer platanoides', 'Ailanthus altissima', 'Albizia julibrissin', 'Alnus glutinosa', 'Broussonetia papyrifera', 'Casuarina cunninghamiana ', 'Casuarina equisetifolia', 'Casuarina glauca', 'Eucalyptus globulus', 'Eucalyptus grandis', 'Eucalyptus robusta', 'Eucalyptus saligna', 'Grevillea robusta', 'Koelreuteria paniculata', 'Ligustrum lucidum', 'Melaleuca quinquenervia', 'Melia azedarach', 'Morus alba', 'Paulownia tomentosa', 'Phellodendron amurense', 'Picea abies', 'Pinus nigra', 'Pinus sylvestris', 'Prunus padus', 'Prosopis pallida', 'Pyrus calleryana', 'Quercus acutissima', 'Triadica sebifera', 'Ulmus pumila')
+
+MainStates <- map_data("state")
+```
+
+```{r}
+spcd_tb <- read_csv('D:/FIA/REF_SPECIES.csv', show_col_types = F) %>% select(SPCD, COMMON_NAME, GENUS, SPECIES) %>% mutate(spName = str_c(GENUS, SPECIES, sep = ' '))
+
+spCodes <- spcd_tb %>% 
+              filter(str_detect(spName, str_c(spNames, collapse = '|'))) %>% 
+              arrange(SPCD)
+```
+
+
+```{r Load EDDMapS Data, warning=FALSE}
+edd_tb <- read_csv('D:/NASM/mappings.csv', show_col_types = FALSE)
+edd_tb <- edd_tb %>% filter(Status == 'Positive' & 
+                              !is.na(Latitude) & 
+                              !is.na(Longitude) &
+                                  Datum %in% c('NAD83', 'WGS84'))
+```
+
+```{r}
+edd_sf <- st_as_sf(edd_tb, coords = c('Longitude', 'Latitude'), crs = 4326)
+
+st_write(edd_sf, "D:/NASM/Ailanthus_EDD.gpkg", driver="GPKG")
+```
+```{r}
+fia_tb <- read_csv('D:/NASM/AIAL_PLOT.csv') %>% filter(INVYR > 2000) %>% 
+  select(LAT, LON) %>% mutate(SOURCE = 'FIA') %>% 
+  bind_rows(edd_tb %>% select(LAT = Latitude, LON = Longitude) %>% mutate(SOURCE = 'EDDMapS'))
+
+comb.sf <- st_as_sf(fia_tb, coords = c("LON", "LAT"), crs = 4326) 
+
+st_write(comb.sf, "D:/NASM/AIAL_LOC.gpkg", driver="GPKG")
+```
+
+
+```{r}
+p.sf <- st_as_sf(inv, coords = c("LON", "LAT"), crs = 4326) 
+
+st_write(p.sf, "D:/Ailanthus/Ailanthus_FIA.gpkg", driver="GPKG")  # Create a geopackage file
+
+tpa_comp <- tpa_comp %>% left_join(plot, by=c('PLT_CN'='CN'))
+
+x11()
+
+```
+
+```{r}
+ggplot() + 
+  geom_polygon(data=MainStates, aes(x=long, y=lat, group=group),
+                color="black", fill="white" ) +
+  geom_point(data=edd_tb, aes(x=Longitude, y=Latitude),
+             colour="black",pch=21) 
+```
+

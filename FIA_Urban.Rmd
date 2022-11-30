@@ -1,0 +1,92 @@
+---
+title: "FIA Urban"
+output: html_notebook
+---
+
+```{r message=FALSE}
+library(rFIA)
+library(DBI)
+library(maps)
+library(ggmap)
+library(sf)
+library(tidyverse)
+```
+
+```{r}
+path_db <- 'D:/FIA/urban/FIADB_URBAN_ENTIRE.db'
+
+con <- dbConnect(RSQLite::SQLite(), path_db)
+
+db_table_names <- dbListTables(con)
+db_table_names
+```
+
+```{r}
+ref_species <- dbReadTable('REF_SPECIES', conn = con)
+so_inventory <- dbReadTable('SO_INVENTORY', conn = con)
+id_plot_inv_assgn <- dbReadTable('ID_PLOT_INV_ASSGN', conn = con)
+id_invasive_subp_cond <- dbReadTable('ID_INVASIVE_SUBP_COND', conn = con)
+
+cond_tb <- dbReadTable('ID_COND', conn = con)
+plot_tb <- dbReadTable('ID_PLOT', conn = con)
+tree_tb <- dbReadTable('ID_TREE', conn = con)
+
+```
+
+```{r}
+comb.sf <- st_as_sf(fia_tb, coords = c("LON", "LAT"), crs = 4326)
+```
+
+```{r}
+ail_tree_summ <- tree_tb %>% filter(SPCD == 341) %>% 
+  group_by(PLT_CN) %>% 
+  summarise(TPA = sum(TPA_UNADJ, na.rm = T),
+            BAA = sum(BASAL_AREA * TPA_UNADJ, na.rm = T)) %>% 
+  ungroup() %>% 
+  left_join(plot_tb %>% select(PLT_CN = CN, STATECD, LON, LAT), by = 'PLT_CN') %>% 
+  left_join(id_plot_inv_assgn %>% select(PLT_CN, INV_CN), by = 'PLT_CN') %>% 
+  left_join(so_inventory %>% select(INV_CN = CN, PROJECT_NAME), by = 'INV_CN') %>% 
+  arrange(PROJECT_NAME, PLT_CN)
+
+ail_subp_summ <- id_invasive_subp_cond %>% filter(SPECIES_SYMBOL_FLD == 'AIAL') %>% 
+  select(PLT_CN, COVER_PCT) %>% 
+  left_join(plot_tb %>% select(PLT_CN = CN, STATECD, LON, LAT), by = 'PLT_CN') %>% 
+  left_join(id_plot_inv_assgn %>% select(PLT_CN, INV_CN), by = 'PLT_CN') %>% 
+  left_join(so_inventory %>% select(INV_CN = CN, PROJECT_NAME), by = 'INV_CN') %>% 
+  arrange(PROJECT_NAME, PLT_CN)
+```
+
+```{r plot-coordinates}
+inv_sp <- inv_tpa %>% left_join(inv_plot, by = c('PLT_CN' = 'CN')) %>% 
+  select(LAT, LON, SPCD, pltID) %>% 
+  mutate(SPCD = as.factor(SPCD)) %>% 
+  mutate(SPCD = recode_factor(SPCD, `341` = 'ailanthus', `712` = 'empress-tree', `993` = 'chinaberry', `994` = 'Chinese tallowtree'))
+```
+
+```{r}
+unique(ail_tree_summ %>% select(PROJECT_NAME))
+```
+
+```{r message=FALSE}
+states_lyr <- map_data("state")
+
+qmplot(LON, LAT, 
+       data = ail_subp_summ %>% filter(str_detect(PROJECT_NAME, 'St. Louis')),
+       maptype = 'toner-lite',
+       shape = I(21),
+       color = I('black'),
+       fill = I('red'),
+       size = I(2.5),
+       alpha = I(1),
+       f = 0.15,
+       #zoom = 12,
+       legend = 'none'
+       )
+
+```
+
+
+
+```{r}
+dbDisconnect(con)
+```
