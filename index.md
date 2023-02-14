@@ -126,3 +126,5 @@ ggplot() +
 
 ![](FIA_Plot_Analysis_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 <br>
+
+<br> [Show cumulative inventory maps](FIA_cumulative_range_maps.md)
