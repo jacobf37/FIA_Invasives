@@ -1,0 +1,112 @@
+---
+title: "Inventory_Maps"
+output: html_document
+date: "2023-02-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load-packages-1, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(plotly)
+
+inv_cp <- readRDS('./Data/display_tb.rds')
+```
+
+
+Cumulative range of ailanthus
+```{r}
+# geo styling
+
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showland = TRUE,
+  landcolor = toRGB("gray95"),
+  subunitcolor = toRGB("gray85"),
+  countrycolor = toRGB("gray85"),
+  countrywidth = 0.5,
+  subunitwidth = 0.5
+)
+
+sub_cp <- inv_cp %>% filter(SPCD == 'ailanthus')
+fig_1 <- plot_geo(sub_cp, lat = ~LAT, lon = ~LON) %>% 
+  add_trace(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~SPCD) %>% 
+  layout(geo = g, title = 'ailanthus')
+
+fig_1
+```
+
+
+Cumulative range of chinaberry
+```{r}
+# geo styling
+
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showland = TRUE,
+  landcolor = toRGB("gray95"),
+  subunitcolor = toRGB("gray85"),
+  countrycolor = toRGB("gray85"),
+  countrywidth = 0.5,
+  subunitwidth = 0.5
+)
+
+sub_cp <- inv_cp %>% filter(SPCD == 'chinaberry')
+fig_2 <- plot_geo(sub_cp, lat = ~LAT, lon = ~LON) %>% 
+  add_trace(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~SPCD) %>% 
+  layout(geo = g, title = 'chinaberry')
+
+fig_2
+```
+
+
+Cumulative range of Chinese tallowtree
+```{r}
+# geo styling
+
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showland = TRUE,
+  landcolor = toRGB("gray95"),
+  subunitcolor = toRGB("gray85"),
+  countrycolor = toRGB("gray85"),
+  countrywidth = 0.5,
+  subunitwidth = 0.5
+)
+
+sub_cp <- inv_cp %>% filter(SPCD == 'Chinese tallowtree')
+fig_3 <- plot_geo(sub_cp, lat = ~LAT, lon = ~LON) %>% 
+  add_trace(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~SPCD) %>% 
+  layout(geo = g, title = 'Chinese tallowtree')
+
+fig_3
+```
+
+
+Cumulative range of empress-tree
+```{r}
+# geo styling
+
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showland = TRUE,
+  landcolor = toRGB("gray95"),
+  subunitcolor = toRGB("gray85"),
+  countrycolor = toRGB("gray85"),
+  countrywidth = 0.5,
+  subunitwidth = 0.5
+)
+
+sub_cp <- inv_cp %>% filter(SPCD == 'empress-tree')
+fig_4 <- plot_geo(sub_cp, lat = ~LAT, lon = ~LON) %>% 
+  add_trace(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~SPCD) %>% 
+  layout(geo = g, title = 'empress-tree')
+
+fig_4
+```

@@ -13,6 +13,7 @@ library(tidyverse)
 library(rFIA)
 library(maps)
 library(sf)
+library(plotly)
 ```
 <br>
 
@@ -42,7 +43,8 @@ inv_spcd <- c(341, 712, 993, 994)
 Load FIA data into an FIAdb object, making sure to use the remote database option `inMemory = F`.
 The `clipFIA()` function filters db to most recent inventory cycle for each state.
 ```{r}
-db <- readFIA(db_dir, states = db_states, inMemory = F) %>% clipFIA()
+#db <- readFIA(db_dir, states = db_states, inMemory = F) %>% clipFIA()
+db <- readFIA(db_dir, states = db_states, inMemory = F)
 ```
 <br>
 
@@ -88,16 +90,19 @@ plt_id <- inv_plot %>%
 Attach coordinates to plots.
 ```{r plot-coordinates}
 inv_sp <- inv_tpa %>% left_join(inv_plot, by = c('PLT_CN' = 'CN')) %>% 
-  select(LAT, LON, SPCD, pltID) %>% 
+  select(LAT, LON, SPCD, pltID, INVYR) %>% 
+  filter(!(is.na(LAT)), !(is.na(LON))) %>% 
   mutate(SPCD = as.factor(SPCD)) %>% 
   mutate(SPCD = recode_factor(SPCD, `341` = 'ailanthus', `712` = 'empress-tree', `993` = 'chinaberry', `994` = 'Chinese tallowtree'))
+
+saveRDS(inv_sp, './Data/inv_sp.rds')
 ```
 <br>
 Map it.
 ```{r map-invasive-plots, message=FALSE}
 states_lyr <- map_data("state")
 
-ggplot() + 
+sp_map <- ggplot() + 
   geom_polygon(data=states_lyr, aes(x=long, y=lat, group=group),
                 color="black", fill="white" ) +
   labs(x = 'Longitude', y = 'Latitude') +
@@ -107,7 +112,25 @@ ggplot() +
   theme_classic() +
   theme(legend.position = 'none') +
   facet_wrap(~SPCD)
+
+sp_map
 ```
+
+
+```{r}
+inv_cp <- inv_sp %>% mutate(DISPLYR = INVYR)
+out_tb <- tibble()
+for (i in unique(inv_sp$SPCD)){
+  for (j in unique(inv_sp %>% filter(SPCD == i) %>% select(INVYR) %>% pull())){
+    out_tb <- out_tb %>% bind_rows(
+      inv_cp %>% filter(SPCD == i & INVYR < j) %>% mutate(DISPLYR = j))
+  }
+}
+
+inv_cp <- inv_cp %>% bind_rows(out_tb)
+saveRDS(inv_cp, './Data/display_tb.rds')
+```
+
 <br>
 
 ## Climate Data

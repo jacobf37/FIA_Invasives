@@ -1,0 +1,88 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r load-packages-1, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(rFIA)
+library(maps)
+library(sf)
+```
+
+Set some global variables.
+```{r set-FIA-variables}
+db_dir <- 'D:/FIA/rFIA'
+
+db_states <- c('CT','DE','IL','IN','IA','KS','ME','MD',
+                     'MA','MI','MN','MO','NE','NH','NJ','NY',
+                     'ND','OH','PA','RI','SD','VT','WV','WI',
+                     'AL','AR','FL','GA','KY','LA','MS','NC',
+                     'OK','SC','TN','VA', 'TX')
+
+inv_spcd <- c(341, 712, 993, 994)
+```
+
+```{r}
+options(timeout = 360000)
+getFIA(db_states, dir = db_dir)
+
+```
+
+```{r}
+db <- readFIA(db_dir, states = db_states, inMemory = F)
+```
+
+```{r FIA-db-tpa, eval=FALSE}
+inv_tpa <- tpa(db, bySpecies = T, treeDomain = SPCD %in% inv_spcd, byPlot = T)
+inv_tpa
+```
+
+
+```{r}
+inv_tpa %>% 
+  mutate(SPCD = as.factor(SPCD)) %>% 
+  mutate(SPCD = recode_factor(SPCD, `341` = 'ailanthus', `712` = 'empress-tree', `993` = 'chinaberry', `994` = 'Chinese tallowtree')) %>% 
+  ggplot(aes(x = YEAR)) +
+  geom_histogram(binwidth = 1, fill = 'darkgreen') +
+  theme_classic() +
+  facet_wrap(~SPCD)
+
+
+```
+```{r PLOT-COND-filter}
+sub_db <- readFIA(db_dir, states = db_states, tables = c('PLOT', 'COND'))
+inv_plot <- sub_db$PLOT %>% filter(CN %in% unique(inv_tpa$PLT_CN), DESIGNCD == 1) %>%
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, COUNTYCD, PLOT, ECOSUBCD)
+inv_cond <- sub_db$COND %>% filter(PLT_CN %in% unique(inv_plot$CN)) %>% 
+  select(PLT_CN, INVYR, STATECD, COUNTYCD, PLOT, FORTYPCD, OWNCD, OWNGRPCD, FORTYPCD, STDSZCD)
+inv_prev_plot <- sub_db$PLOT %>% filter(CN %in% unique(inv_plot$CN) | CN %in% unique(inv_plot$PREV_PLT_CN)) %>% 
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, UNITCD, COUNTYCD, PLOT, ECOSUBCD)
+inv_prev_plot_v2 <- sub_db$PLOT %>% filter(CN %in% unique(inv_prev_plot$CN) | CN %in% unique(inv_prev_plot$PREV_PLT_CN)) %>% 
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, UNITCD, COUNTYCD, PLOT, ECOSUBCD)
+inv_prev_plot_v3 <- sub_db$PLOT %>% filter(CN %in% unique(inv_prev_plot_v2$CN) | CN %in% unique(inv_prev_plot_v2$PREV_PLT_CN)) %>% 
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, UNITCD, COUNTYCD, PLOT, ECOSUBCD)
+inv_prev_plot_v4 <- sub_db$PLOT %>% filter(CN %in% unique(inv_prev_plot_v3$CN) | CN %in% unique(inv_prev_plot_v3$PREV_PLT_CN)) %>% 
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, UNITCD, COUNTYCD, PLOT, ECOSUBCD)
+inv_prev_plot_v5 <- sub_db$PLOT %>% filter(CN %in% unique(inv_prev_plot_v4$CN) | CN %in% unique(inv_prev_plot_v4$PREV_PLT_CN)) %>% 
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, UNITCD, COUNTYCD, PLOT, ECOSUBCD)
+inv_prev_plot_v6 <- sub_db$PLOT %>% filter(CN %in% unique(inv_prev_plot_v5$CN) | PREV_PLT_CN %in% unique(inv_prev_plot_v5$CN)) %>% 
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, UNITCD, COUNTYCD, PLOT, ECOSUBCD)
+inv_prev_plot_v7 <- sub_db$PLOT %>% filter(CN %in% unique(inv_prev_plot_v6$CN) | PREV_PLT_CN %in% unique(inv_prev_plot_v6$CN)) %>% 
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, UNITCD, COUNTYCD, PLOT, ECOSUBCD)
+nrow(sub_db$PLOT %>% filter(CN %in% unique(inv_prev_plot_v7$CN) | PREV_PLT_CN %in% unique(inv_prev_plot_v7$CN)))
+inv_prev_plot_v8 <- sub_db$PLOT %>% filter(CN %in% unique(inv_prev_plot_v7$CN) | PREV_PLT_CN %in% unique(inv_prev_plot_v7$CN)) %>% 
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, UNITCD, COUNTYCD, PLOT, ECOSUBCD)
+nrow(sub_db$PLOT %>% filter(CN %in% unique(inv_prev_plot_v8$CN) | PREV_PLT_CN %in% unique(inv_prev_plot_v8$CN)))
+inv_prev_plot_v9 <- sub_db$PLOT %>% filter(CN %in% unique(inv_prev_plot_v8$CN) | PREV_PLT_CN %in% unique(inv_prev_plot_v8$CN)) %>% 
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, UNITCD, COUNTYCD, PLOT, ECOSUBCD)
+nrow(sub_db$PLOT %>% filter(CN %in% unique(inv_prev_plot_v9$CN) | PREV_PLT_CN %in% unique(inv_prev_plot_v9$CN)))
+#rm(sub_db)
+
+table(inv_prev_plot_v9 %>% select(INVYR, STATECD))
+```
+
+```{r}
+write_csv(inv_prev_plot_v9, './Invasive_Plot_List.csv')
+```
+
