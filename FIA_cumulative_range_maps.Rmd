@@ -35,7 +35,7 @@ g <- list(
 
 sub_cp <- inv_cp %>% filter(SPCD == 'ailanthus')
 fig_1 <- plot_geo(sub_cp, lat = ~LAT, lon = ~LON) %>% 
-  add_trace(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~SPCD) %>% 
+  add_markers(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~paste(SPCD, '-', INVYR)) %>% 
   layout(geo = g, title = 'ailanthus')
 
 fig_1
@@ -59,7 +59,7 @@ g <- list(
 
 sub_cp <- inv_cp %>% filter(SPCD == 'chinaberry')
 fig_2 <- plot_geo(sub_cp, lat = ~LAT, lon = ~LON) %>% 
-  add_trace(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~SPCD) %>% 
+  add_markers(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~paste(SPCD, '-', INVYR)) %>% 
   layout(geo = g, title = 'chinaberry')
 
 fig_2
@@ -83,7 +83,7 @@ g <- list(
 
 sub_cp <- inv_cp %>% filter(SPCD == 'Chinese tallowtree')
 fig_3 <- plot_geo(sub_cp, lat = ~LAT, lon = ~LON) %>% 
-  add_trace(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~SPCD) %>% 
+  add_markers(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~paste(SPCD, '-', INVYR)) %>% 
   layout(geo = g, title = 'Chinese tallowtree')
 
 fig_3
@@ -107,7 +107,7 @@ g <- list(
 
 sub_cp <- inv_cp %>% filter(SPCD == 'empress-tree')
 fig_4 <- plot_geo(sub_cp, lat = ~LAT, lon = ~LON) %>% 
-  add_trace(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~SPCD) %>% 
+  add_markers(frame = sub_cp$DISPLYR, color = ~INVYR, text = ~paste(SPCD, '-', INVYR)) %>% 
   layout(geo = g, title = 'empress-tree')
 
 fig_4

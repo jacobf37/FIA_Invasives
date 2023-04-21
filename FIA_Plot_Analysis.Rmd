@@ -90,7 +90,7 @@ plt_id <- inv_plot %>%
 Attach coordinates to plots.
 ```{r plot-coordinates}
 inv_sp <- inv_tpa %>% left_join(inv_plot, by = c('PLT_CN' = 'CN')) %>% 
-  select(LAT, LON, SPCD, pltID, INVYR) %>% 
+  select(LAT, LON, SPCD, pltID, INVYR, STATECD) %>% 
   filter(!(is.na(LAT)), !(is.na(LON))) %>% 
   mutate(SPCD = as.factor(SPCD)) %>% 
   mutate(SPCD = recode_factor(SPCD, `341` = 'ailanthus', `712` = 'empress-tree', `993` = 'chinaberry', `994` = 'Chinese tallowtree'))
@@ -129,10 +129,36 @@ for (i in unique(inv_sp$SPCD)){
 
 inv_cp <- inv_cp %>% bind_rows(out_tb)
 saveRDS(inv_cp, './Data/display_tb.rds')
+table(inv_sp %>% filter(SPCD == 'Chinese tallowtree') %>% select(STATECD, INVYR))
 ```
 
 <br>
+```{r FIA invasives estimate}
+inv_tb <- invasive(db, byPlot = T) 
+inv_subp <- inv_tb %>% left_join(sub_db$PLOT %>%
+  select(CN, PREV_PLT_CN, INVYR, LAT, LON, STATECD, COUNTYCD, PLOT, ECOSUBCD), by = c('PLT_CN' = 'CN')) %>% 
+  #select(LAT, LON, SPCD, pltID, INVYR, STATECD) %>% 
+  filter(!(is.na(LAT)), !(is.na(LON)), SYMBOL %in% c('AIAL', 'PATO2', 'MEAZ', 'TRSE6')) %>% 
+  mutate(SYMBOL = as.factor(SYMBOL)) %>% 
+  mutate(SYMBOL = recode_factor(SYMBOL, AIAL = 'ailanthus', PATO2 = 'empress-tree', MEAZ = 'chinaberry', TRSE6 = 'Chinese tallowtree'))
+```
 
+```{r map-invasive-subplots, message=FALSE}
+states_lyr <- map_data("state")
+
+inv_subp_map <- ggplot() + 
+  geom_polygon(data=states_lyr, aes(x=long, y=lat, group=group),
+                color="black", fill="white" ) +
+  labs(x = 'Longitude', y = 'Latitude') +
+  geom_point(data=inv_subp, aes(x=LON, y=LAT, fill = SYMBOL),
+             colour="black",pch=21) +
+  coord_cartesian(xlim=c(-105, -70), ylim = c(25, 45)) +
+  theme_classic() +
+  theme(legend.position = 'none') +
+  facet_wrap(~SYMBOL)
+
+inv_subp_map
+```
 ## Climate Data
 <br>
 Load packages.

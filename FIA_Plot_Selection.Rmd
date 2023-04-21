@@ -38,6 +38,10 @@ inv_tpa <- tpa(db, bySpecies = T, treeDomain = SPCD %in% inv_spcd, byPlot = T)
 inv_tpa
 ```
 
+```{r}
+inv_subp <- invasive(db, )
+```
+
 
 ```{r}
 inv_tpa %>% 

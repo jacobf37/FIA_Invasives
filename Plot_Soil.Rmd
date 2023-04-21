@@ -47,6 +47,20 @@ Write out results.
 write_csv(p@data %>% bind_cols(res %>% select(mukey, muname)), './Data/SSURGO_intersect.csv')
 ```
 
+SSURGO spatial estimates
+```{r}
+x@horizons <- x@horizons %>% mutate(hzthick = hzdepb_r - hzdept_r)
+
+mu_summ <- x@horizons %>% group_by(cokey) %>% 
+  summarise(awc = sum(awc_r * hzthick, na.rm = T),
+            om = weighted.mean(om_r, hzthick, na.rm = T),
+            clay = weighted.mean(claytotal_r, hzthick, na.rm = T),
+            silt = weighted.mean(silttotal_r, hzthick, na.rm = T),
+            sand = weighted.mean(sandtotal_r, hzthick, na.rm = T),
+            cec = sum(cec7_r, na.rm = T))
+
+```
+
 ## FIA Soil Data
 
 Read in FIA soils data.
